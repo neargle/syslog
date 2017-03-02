@@ -20,7 +20,7 @@ var psTools = `&{$reslist=Get-WinEvent -FilterHashtable @{'ProviderName'='Micros
 //	`='Microsoft-Windows-Security-Auditing';Id=4776%s} -MaxEvents 1;Write-Host $res.toxml();}`
 
 //windows下的正则
-var regEx = regexp.MustCompile(`<TimeCreated SystemTime='(?P<time>[\w\-\:\.]+)'\/>.*` +
+var regEx = regexp.MustCompile(`<TimeCreated SystemTime='(?P<time>[\w\-\:]+)\.\w+'\/>.*` +
 	`<Data Name='TargetUserName'>(?P<username>[^<]+)</Data>.*<Data Name='Workstation'>(?P<ip>([\w\.\-]+))</Data><Data Name='Status'>(?P<status>\w+)</Data>`)
 
 //linux的正则
@@ -29,12 +29,11 @@ var regExLinux = regexp.MustCompile(
 
 const TimeFormat = "Jan 2 15:04"
 const TimeFormat2 = "01/02-15:04"
+const TimeFormat3 = "2006-01-02T15:04:05"
 
 func GetSysLog(system string, starttime string) []map[string]string {
-	`
-	system : windows or linux
-	starttime : all or MM/dd-hh:ss
-	`
+	// system : windows or linux
+	// starttime : all or MM/dd-hh:ss
 	var log_list []map[string]string
 	if system == "windows" {
 		if PsExists() { // 如果存在powershell
@@ -131,6 +130,11 @@ func xml2logMap(xml string) map[string]string {
 					} else {
 						result[name] = "false"
 					}
+				} else if name == "time" {
+					loc, _ := time.LoadLocation("Local")
+					t1, _ := time.Parse(TimeFormat3, match[i])
+					ntime := t1.In(loc)
+					result[name] = ntime.Format(TimeFormat2)
 				} else {
 					result[name] = match[i]
 				}
