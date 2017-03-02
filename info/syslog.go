@@ -11,8 +11,10 @@ import (
 	"time"
 )
 
+var BlackList []string
+
 //获取复数的windows安全日志
-var psTools = `&{$reslist=Get-WinEvent -FilterHashtable @{'ProviderName'='Microsoft-Windows-Security-Auditing';Id=4776%s};` +
+var psTools = `&{$reslist=Get-WinEvent -FilterHashtable @{'ProviderName'='Microsoft-Windows-Security-Auditing';Id=4625%s};` +
 	`If($reslist.length){For ($index=0;$index -le $reslist.length-1;++$index){Write-Host $reslist[$index].toxml()}}Else{Write-Host $res.toxml();}}`
 
 //获取单个的windows安全日志
@@ -20,8 +22,7 @@ var psTools = `&{$reslist=Get-WinEvent -FilterHashtable @{'ProviderName'='Micros
 //	`='Microsoft-Windows-Security-Auditing';Id=4776%s} -MaxEvents 1;Write-Host $res.toxml();}`
 
 //windows下的正则
-var regEx = regexp.MustCompile(`<TimeCreated SystemTime='(?P<time>[\w\-\:]+)\.\w+'\/>.*` +
-	`<Data Name='TargetUserName'>(?P<username>[^<]+)</Data>.*<Data Name='Workstation'>(?P<ip>([\w\.\-]+))</Data><Data Name='Status'>(?P<status>\w+)</Data>`)
+var regEx = regexp.MustCompile(`<TimeCreated SystemTime='(?P<time>[\w\-\:]+)\.\w+'\/>.*<Data Name='TargetUserName'>(?P<username>[^<]+)</Data>.*<Data Name='TargetDomainName'>(?P<hostname>([^<]*))</Data><Data Name='Status'>(?P<status>\w+)</Data>.*<Data Name='IpAddress'>(?P<ip>[^<]+)</Data>`)
 
 //linux的正则
 var regExLinux = regexp.MustCompile(
@@ -46,7 +47,6 @@ func GetSysLog(system string, starttime string) []map[string]string {
 			//fmt.Println(ps)
 			out, _ := res.Output()
 			xmlstr := string(out)
-			//			fmt.Println(xmlstr)
 			lines := strings.Split(xmlstr, "\n")
 			for _, v := range lines {
 				if str := strings.TrimSpace(v); str != "" {
@@ -141,8 +141,7 @@ func xml2logMap(xml string) map[string]string {
 					ntime := t1.In(loc)
 					result[name] = ntime.Format(TimeFormat2)
 				} else if name == "ip" {
-					c := strings.ToUpper(match[i])
-					if c == "LOCALHOST" || c == HOSTNAME {
+					if stringInSlice(match[i], BlackList) {
 						return make(map[string]string)
 					}
 					result[name] = match[i]
@@ -180,6 +179,15 @@ func PsExists() bool {
 	flag := strings.TrimSpace(res)
 	if flag == "true" {
 		return true
+	}
+	return false
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
 	}
 	return false
 }
