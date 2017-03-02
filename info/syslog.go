@@ -54,8 +54,10 @@ func GetSysLog(system string, starttime string) []map[string]string {
 
 		}
 	} else { // linux 获取日志
-		lastlist := linuxLog("cat /Users/neargle/redmagic/program_workspace/syslog/last.txt", starttime)
-		fmt.Println(lastlist)
+		lastlist := linuxLog("last", starttime)
+		lastblist := linuxLog("lastb", starttime)
+		log_list = append(log_list, lastlist...)
+		log_list = append(log_list, lastblist...)
 	}
 	return log_list
 }
