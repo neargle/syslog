@@ -27,6 +27,8 @@ var regEx = regexp.MustCompile(`<TimeCreated SystemTime='(?P<time>[\w\-\:]+)\.\w
 var regExLinux = regexp.MustCompile(
 	`(?P<username>\w+) +[^ ]+ +(?P<ip>[\d\.]+) +[A-Z][a-z]{2} (?P<time>[A-Z][a-z]{2} {1,2}\d{1,2} \d{2}:\d{2})`)
 
+var HOSTNAME, _ = os.Hostname()
+
 const TimeFormat = "Jan 2 15:04"
 const TimeFormat2 = "01/02-15:04"
 const TimeFormat3 = "2006-01-02T15:04:05"
@@ -138,6 +140,12 @@ func xml2logMap(xml string) map[string]string {
 					t1, _ := time.Parse(TimeFormat3, match[i])
 					ntime := t1.In(loc)
 					result[name] = ntime.Format(TimeFormat2)
+				} else if name == "ip" {
+					c := strings.ToUpper(match[i])
+					if c == "LOCALHOST" || c == HOSTNAME {
+						return make(map[string]string)
+					}
+					result[name] = match[i]
 				} else {
 					result[name] = match[i]
 				}
