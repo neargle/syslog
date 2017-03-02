@@ -12,8 +12,8 @@ import (
 )
 
 //获取复数的windows安全日志
-var psTools = `& {$reslist =  Get-WinEvent -FilterHashtable@{'ProviderName'='Microsoft-Windows-Security-Auditing';Id=4776%s};` +
-	`If ($res.length){For ($index = 0; $index -le $reslist.length-1; ++$index){Write-Host $reslist[$index].toxml()};}else{Write-Host $res.toxml();}}`
+var psTools = `&{$reslist=Get-WinEvent -FilterHashtable @{'ProviderName'='Microsoft-Windows-Security-Auditing';Id=4776%s};` +
+	`If($reslist.length){For ($index=0;$index -le $reslist.length-1;++$index){Write-Host $reslist[$index].toxml()}}Else{Write-Host $res.toxml();}}`
 
 //获取单个的windows安全日志
 //var psTools_One = `& {$res = Get-WinEvent -FilterHashtable @{'ProviderName'` +
@@ -21,16 +21,20 @@ var psTools = `& {$reslist =  Get-WinEvent -FilterHashtable@{'ProviderName'='Mic
 
 //windows下的正则
 var regEx = regexp.MustCompile(`<TimeCreated SystemTime='(?P<time>[\w\-\:\.]+)'\/>.*` +
-	`<Data Name='TargetUserName'>(?P<username>[^<]+)</Data>.*<Data Name='Workstation'>(?P<ip>([\d\.\-]+))</Data><Data Name='Status'>(?P<status>\w+)</Data>`)
+	`<Data Name='TargetUserName'>(?P<username>[^<]+)</Data>.*<Data Name='Workstation'>(?P<ip>([\w\.\-]+))</Data><Data Name='Status'>(?P<status>\w+)</Data>`)
 
 //linux的正则
 var regExLinux = regexp.MustCompile(
 	`(?P<username>\w+) +[^ ]+ +(?P<ip>[\d\.]+) +[A-Z][a-z]{2} (?P<time>[A-Z][a-z]{2} {1,2}\d{1,2} \d{2}:\d{2})`)
 
 const TimeFormat = "Jan 2 15:04"
-const TimeFormat2  = "01/02-15:04"
+const TimeFormat2 = "01/02-15:04"
 
 func GetSysLog(system string, starttime string) []map[string]string {
+	`
+	system : windows or linux
+	starttime : all or MM/dd-hh:ss
+	`
 	var log_list []map[string]string
 	if system == "windows" {
 		if PsExists() { // 如果存在powershell
@@ -38,8 +42,10 @@ func GetSysLog(system string, starttime string) []map[string]string {
 			pstime := psDate(starttime)
 			ps := fmt.Sprintf(psTools, pstime)
 			res = exec.Command("PowerShell", "-Command", ps)
+			//fmt.Println(ps)
 			out, _ := res.Output()
 			xmlstr := string(out)
+			//			fmt.Println(xmlstr)
 			lines := strings.Split(xmlstr, "\n")
 			for _, v := range lines {
 				if str := strings.TrimSpace(v); str != "" {
@@ -69,17 +75,17 @@ func linuxLog(cmd string, starttime string) []map[string]string {
 	for _, v := range lines {
 		res := last2logMap(v)
 		if len(res) > 0 {
-			if len(reslist) > 0{
-				t1,_ := time.Parse(TimeFormat2, res["time"])
-				t2,_ := time.Parse(TimeFormat2, reslist[len(reslist)-1]["time"])
-				starttime,_ := time.Parse(TimeFormat2, starttime)
-				if !t1.Before(t2) || !starttime.Before(t1){
+			if len(reslist) > 0 {
+				t1, _ := time.Parse(TimeFormat2, res["time"])
+				t2, _ := time.Parse(TimeFormat2, reslist[len(reslist)-1]["time"])
+				starttime, _ := time.Parse(TimeFormat2, starttime)
+				if !t1.Before(t2) || !starttime.Before(t1) {
 					return reslist
 				}
 			}
-			if cmd == "last"{
+			if cmd == "last" {
 				res["status"] = "true"
-			}else {
+			} else {
 				res["status"] = "false"
 			}
 			reslist = append(reslist, res)
@@ -88,7 +94,7 @@ func linuxLog(cmd string, starttime string) []map[string]string {
 	return reslist
 }
 
-func outofdate(time string, loginfo map[string]string) bool{
+func outofdate(time string, loginfo map[string]string) bool {
 	return false
 }
 
@@ -104,10 +110,10 @@ func psDate(time string) string {
 	if time == "all" {
 		return ""
 	} else {
-		if m, _ := regexp.MatchString(`^\d{4}\/\d{2}\/\d{2}\-\d{2}\:\d{2}\:\d{2}$`, time); !m {
-			return ""
-		}
-		res := fmt.Sprintf(";starttime=[datetime]::ParseExact('%s','yyyy/MM/dd-HH:mm',$null)", time)
+		//		if m, _ := regexp.MatchString(`^\d{4}\/\d{2}\/\d{2}\-\d{2}\:\d{2}\:\d{2}$`, time); !m {
+		//			return ""
+		//		}
+		res := fmt.Sprintf(";starttime=[datetime]::ParseExact('%s','MM/dd-HH:mm',$null)", time)
 		return res
 	}
 }
@@ -138,11 +144,11 @@ func last2logMap(lastOut string) map[string]string {
 	match := regExLinux.FindStringSubmatch(lastOut)
 	res := make(map[string]string)
 	subName := regExLinux.SubexpNames()
-	if len(subName) == len(match){
+	if len(subName) == len(match) {
 		for i, name := range subName {
 			if name != "" {
 				res[name] = match[i]
-				if name == "time"{
+				if name == "time" {
 					//fmt.Println(match[i])
 					t, _ := time.Parse(TimeFormat, match[i])
 					res[name] = t.Format(TimeFormat2)

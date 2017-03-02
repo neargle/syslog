@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	dir := info.GetSysLog("linux", "02/12-00:00")
+	dir := info.GetSysLog("windows", "all")
 	fmt.Println(dir)
 }
