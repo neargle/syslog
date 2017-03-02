@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	dir := info.GetSysLog("windows", "all")
+	dir := info.GetSysLog("linux", "all")
 	fmt.Println(dir)
 }

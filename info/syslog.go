@@ -69,6 +69,9 @@ func GetSysLog(system string, starttime string) []map[string]string {
 
 func linuxLog(cmd string, starttime string) []map[string]string {
 	var reslist []map[string]string
+	if starttime == "all" {
+		starttime = "01/01-00:00"
+	}
 	out := Cmdexec(cmd, "linux")
 	lines := strings.Split(out, "\n")
 	for _, v := range lines {
