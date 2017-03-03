@@ -9,3 +9,4 @@
     }
     
 
+Windows调用了Powershell, Linux目前支持CentOS，其他应该也适用，不过没测试...
