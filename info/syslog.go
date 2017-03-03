@@ -17,10 +17,6 @@ var BlackList []string
 var psTools = `&{$reslist=Get-WinEvent -FilterHashtable @{'ProviderName'='Microsoft-Windows-Security-Auditing';Id=4625%s};` +
 	`If($reslist.length){For ($index=0;$index -le $reslist.length-1;++$index){Write-Host $reslist[$index].toxml()}}Else{Write-Host $res.toxml();}}`
 
-//获取单个的windows安全日志
-//var psTools_One = `& {$res = Get-WinEvent -FilterHashtable @{'ProviderName'` +
-//	`='Microsoft-Windows-Security-Auditing';Id=4776%s} -MaxEvents 1;Write-Host $res.toxml();}`
-
 //windows下的正则
 var regEx = regexp.MustCompile(`<TimeCreated SystemTime='(?P<time>[\w\-\:]+)\.\w+'\/>.*<Data Name='TargetUserName'>(?P<username>[^<]+)</Data>.*<Data Name='TargetDomainName'>(?P<hostname>([^<]*))</Data><Data Name='Status'>(?P<status>\w+)</Data>.*<Data Name='IpAddress'>(?P<ip>[^<]+)</Data>`)
 
@@ -44,7 +40,6 @@ func GetSysLog(system string, starttime string) []map[string]string {
 			pstime := psDate(starttime)
 			ps := fmt.Sprintf(psTools, pstime)
 			res = exec.Command("PowerShell", "-Command", ps)
-			//fmt.Println(ps)
 			out, _ := res.Output()
 			xmlstr := string(out)
 			lines := strings.Split(xmlstr, "\n")
@@ -114,9 +109,9 @@ func psDate(time string) string {
 	if time == "all" {
 		return ""
 	} else {
-		//		if m, _ := regexp.MatchString(`^\d{4}\/\d{2}\/\d{2}\-\d{2}\:\d{2}\:\d{2}$`, time); !m {
-		//			return ""
-		//		}
+		// if m, _ := regexp.MatchString(`^\d{4}\/\d{2}\/\d{2}\-\d{2}\:\d{2}\:\d{2}$`, time); !m {
+		// 	return ""
+		// }
 		res := fmt.Sprintf(";starttime=[datetime]::ParseExact('%s','MM/dd-HH:mm',$null)", time)
 		return res
 	}
